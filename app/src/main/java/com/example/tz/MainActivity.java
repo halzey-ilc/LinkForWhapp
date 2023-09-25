@@ -1,78 +1,95 @@
 package com.example.tz;
 
+import android.annotation.SuppressLint;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Bundle;
-import android.os.PersistableBundle;
 import android.view.View;
+import android.widget.Button;
+import android.widget.EditText;
+import android.widget.Toast;
 
-import androidx.activity.result.ActivityResultCallback;
-import androidx.activity.result.ActivityResultLauncher;
-import androidx.activity.result.contract.ActivityResultContract;
-import androidx.activity.result.contract.ActivityResultContracts;
-import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.appcompat.widget.ActivityChooserView;
-import androidx.appcompat.widget.AppCompatButton;
+
+import com.hbb20.CountryCodePicker;
 
 public class MainActivity extends AppCompatActivity {
 
-    private static final String message = " set";
+    CountryCodePicker countryCodePicker;
+    EditText phone, message;
+    Button sendbtn;
+    String messagestr, phonestr = "";
 
+    @SuppressLint("MissingInflatedId")
     @Override
-    public void onCreate(Bundle savedInstanceState) {
+    protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        final AppCompatButton sendbtn = findViewById(R.id.sendbtn);
-        final AppCompatButton btn2 = findViewById(R.id.btn2);
+        countryCodePicker = findViewById(R.id.countryCode);
+        phone = findViewById(R.id.phoneNo);
+        message = findViewById(R.id.message);
+        sendbtn = findViewById(R.id.sendbtn);
 
         sendbtn.setOnClickListener(new View.OnClickListener() {
-
             @Override
-            public void onClick(View view) {
+            public void onClick(View v) {
+
+                messagestr = message.getText().toString();
+                phonestr = phone.getText().toString();
+
+                if (!messagestr.isEmpty() && !phonestr.isEmpty()) {
+
+                    countryCodePicker.registerCarrierNumberEditText(phone);
+                    phonestr = countryCodePicker.getFullNumber();
+
+                    if (isWhatappInstalled()) {
+
+                        Intent i = new Intent(Intent.ACTION_VIEW, Uri.parse("https://api.whatsapp.com/send?phone=" + phonestr +
+                                "&text=" + messagestr));
+                        startActivity(i);
+                        message.setText("");
+                        phone.setText("");
 
 
-                chooseImageFromGallery();
+                    } else {
+
+                        Toast.makeText(MainActivity.this, "Whatsapp is not installed", Toast.LENGTH_SHORT).show();
+
+                    }
+
+
+                } else {
+
+                    Toast.makeText(MainActivity.this, "Please fill in the Phone no. and message it can't be empty", Toast.LENGTH_LONG).show();
+
+                }
+
             }
         });
 
 
-        btn2.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                Intent intent  = new Intent(Intent.ACTION_SEND);
-                intent.putExtra(Intent.EXTRA_TEXT, message);
-                intent.setType("text/plain");
-                intent.setPackage("com.whatsapp");
-                startActivity(intent );
-            }
-        });
     }
 
-    private void chooseImageFromGallery() {
+    private boolean isWhatappInstalled() {
 
-        activityResultLauncher.launch("image/*");
+        PackageManager packageManager = getPackageManager();
+        boolean whatsappInstalled;
 
-    }
+        try {
 
-    private final ActivityResultLauncher<String> activityResultLauncher = registerForActivityResult(new ActivityResultContracts.GetContent(), new ActivityResultCallback<Uri>() {
-        @Override
-        public void onActivityResult(Uri result) {
+            packageManager.getPackageInfo("com.whatsapp", PackageManager.GET_ACTIVITIES);
+            whatsappInstalled = true;
 
-            Intent intent  = new Intent(Intent.ACTION_SEND);
 
-            intent.putExtra(Intent.EXTRA_TEXT, message);
+        } catch (PackageManager.NameNotFoundException e) {
 
-            intent.putExtra(Intent.EXTRA_STREAM, result);
+            whatsappInstalled = false;
 
-            intent.setType("text/plain");
-
-            intent.setType("image/jpeg");
-
-            intent.setPackage("com.telegram");
-
-            startActivity(intent );
         }
-    });
+
+        return whatsappInstalled;
+
+    }
 }
